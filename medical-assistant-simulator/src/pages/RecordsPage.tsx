@@ -318,46 +318,67 @@ export function RecordsPage() {
                             </div>
                             {record.commandResponses && record.commandResponses.length > 0 && (
                               <div className="mt-4 pt-4 border-t border-gray-200">
-                                <h4 className="font-semibold text-gray-800 mb-3">口令响应记录</h4>
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-gray-200">
-                                        <th className="text-left py-2 px-3 font-semibold text-gray-600">口令内容</th>
-                                        <th className="text-left py-2 px-3 font-semibold text-gray-600">你的选择</th>
-                                        <th className="text-center py-2 px-3 font-semibold text-gray-600">结果</th>
-                                        <th className="text-center py-2 px-3 font-semibold text-gray-600">反应时间</th>
-                                        <th className="text-center py-2 px-3 font-semibold text-gray-600">限时</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {record.commandResponses.map((resp: any, idx: number) => (
-                                        <tr key={idx} className="border-b border-gray-100">
-                                          <td className="py-2 px-3 text-gray-800">{resp.commandContent}</td>
-                                          <td className="py-2 px-3 text-gray-700">{resp.selectedOption}</td>
-                                          <td className="py-2 px-3 text-center">
-                                            {resp.isCorrect ? (
-                                              <span className="inline-flex items-center gap-1 text-green-600">
-                                                <CheckCircle className="w-4 h-4" />
-                                                正确
+                                <h4 className="font-semibold text-gray-800 mb-3">口令响应时间线</h4>
+                                <div className="relative">
+                                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-medical-200"></div>
+                                  <div className="space-y-3">
+                                    {record.commandResponses.map((resp: any, idx: number) => {
+                                      const caseData = cases.find(c => c.id === record.caseId);
+                                      const cmd = caseData?.commands.find((c: any) => c.id === resp.commandId);
+                                      const correctOption = cmd?.options.find((o: any) => o.isCorrect);
+                                      const isSlow = resp.reactionTime > resp.timeLimit * 0.8;
+                                      return (
+                                        <div key={idx} className="relative pl-10">
+                                          <div className={`absolute left-2.5 w-4 h-4 rounded-full border-2 ${
+                                            resp.isCorrect
+                                              ? 'bg-green-500 border-green-300'
+                                              : 'bg-red-500 border-red-300'
+                                          }`}></div>
+                                          <div className={`rounded-xl p-3 ${
+                                            resp.isCorrect ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'
+                                          }`}>
+                                            <div className="flex items-center justify-between mb-1">
+                                              <span className="text-sm font-semibold text-gray-800">
+                                                #{idx + 1} "{resp.commandContent}"
                                               </span>
-                                            ) : (
-                                              <span className="inline-flex items-center gap-1 text-red-600">
-                                                <XCircle className="w-4 h-4" />
-                                                错误
-                                              </span>
-                                            )}
-                                          </td>
-                                          <td className="py-2 px-3 text-center font-mono">
-                                            <span className={resp.reactionTime > resp.timeLimit * 0.8 ? 'text-orange-600' : 'text-gray-700'}>
-                                              {resp.reactionTime.toFixed(1)}s
-                                            </span>
-                                          </td>
-                                          <td className="py-2 px-3 text-center text-gray-500">{resp.timeLimit}s</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                              <div className="flex items-center gap-2">
+                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                                  resp.selectedOption === '超时未响应'
+                                                    ? 'bg-gray-200 text-gray-700'
+                                                    : resp.isCorrect
+                                                    ? 'bg-green-200 text-green-800'
+                                                    : 'bg-red-200 text-red-800'
+                                                }`}>
+                                                  {resp.selectedOption === '超时未响应' ? '超时' : resp.isCorrect ? '正确' : '错误'}
+                                                </span>
+                                                <span className={`text-sm font-mono font-bold ${
+                                                  isSlow ? 'text-orange-600' : 'text-gray-700'
+                                                }`}>
+                                                  {resp.reactionTime.toFixed(1)}s
+                                                </span>
+                                                <span className="text-xs text-gray-400">/ {resp.timeLimit}s</span>
+                                              </div>
+                                            </div>
+                                            <div className="text-xs space-y-0.5">
+                                              <p className="text-gray-600">
+                                                你的选择：<span className={resp.isCorrect ? 'text-green-700' : 'text-red-700'}>{resp.selectedOption}</span>
+                                              </p>
+                                              {!resp.isCorrect && correctOption && (
+                                                <p className="text-green-700">
+                                                  正确答案：{correctOption.text}
+                                                </p>
+                                              )}
+                                              {isSlow && (
+                                                <p className="text-orange-600">
+                                                  ⚠ 反应偏慢，接近超时
+                                                </p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               </div>
                             )}

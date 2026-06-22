@@ -151,22 +151,25 @@ export function TrainingPage() {
   const handleNextStep = () => {
     if (!currentStep) return;
 
-    if (!stepsCompleted.has(currentStep.id)) {
+    const stepCommands = currentCase?.commands.filter(c => c.stepId === currentStep.id) || [];
+    const hasCommands = stepCommands.length > 0;
+
+    if (hasCommands) {
+      const remaining = commandsTotal - commandsDone;
+      if (remaining > 0) {
+        setShowFeedback({
+          type: 'wrong',
+          message: `还有 ${remaining} 条医生口令未完成！`,
+          risk: `本步骤共 ${commandsTotal} 条口令，已完成 ${commandsDone} 条`
+        });
+        setTimeout(() => setShowFeedback(null), 2500);
+        return;
+      }
+    } else if (!stepsCompleted.has(currentStep.id)) {
       setShowFeedback({
         type: 'wrong',
         message: '请先选择操作！',
         risk: '每一步都需要至少执行一次操作才能进入下一步'
-      });
-      setTimeout(() => setShowFeedback(null), 2500);
-      return;
-    }
-
-    const remaining = commandsTotal - commandsDone;
-    if (commandsTotal > 0 && remaining > 0) {
-      setShowFeedback({
-        type: 'wrong',
-        message: '还有口令未完成！',
-        risk: `本步骤还有 ${remaining} 条医生口令需要响应`
       });
       setTimeout(() => setShowFeedback(null), 2500);
       return;

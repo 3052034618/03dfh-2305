@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, UserPlus, Award, FileText, Send, AlertTriangle, CheckCircle, Trash2, Plus, X } from 'lucide-react';
+import { Users, UserPlus, Award, FileText, Send, AlertTriangle, CheckCircle, Trash2, Plus, X, Target, TrendingUp } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cases } from '../data/cases';
 import { Assignment, Student } from '../types';
@@ -10,6 +10,7 @@ export function TeacherPage() {
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [showAssignTraining, setShowAssignTraining] = useState(false);
   const [selectedStudentForAssign, setSelectedStudentForAssign] = useState<Student | null>(null);
+  const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   
   const [newStudent, setNewStudent] = useState({
     name: '',
@@ -115,6 +116,41 @@ export function TeacherPage() {
     };
   };
 
+  const getCommandStats = (studentId: string, caseId?: string) => {
+    const studentRecords = records.filter(r => {
+      if (r.studentId !== studentId) return false;
+      if (caseId && r.caseId !== caseId) return false;
+      return (r.commandResponses?.length || 0) > 0;
+    });
+    const recentRecords = studentRecords.slice(-5);
+    if (recentRecords.length === 0) return null;
+    const allResponses = recentRecords.flatMap(r => r.commandResponses || []);
+    if (allResponses.length === 0) return null;
+    const correctCount = allResponses.filter(r => r.isCorrect).length;
+    const avgReactionTime = allResponses.reduce((s, r) => s + r.reactionTime, 0) / allResponses.length;
+    return {
+      recentCount: recentRecords.length,
+      totalCommands: allResponses.length,
+      correctRate: Math.round((correctCount / allResponses.length) * 100),
+      avgReactionTime: avgReactionTime.toFixed(1),
+      details: recentRecords.map(r => {
+        const resps = r.commandResponses || [];
+        const correct = resps.filter((c: any) => c.isCorrect).length;
+        const avgTime = resps.length > 0
+          ? (resps.reduce((s: number, c: any) => s + c.reactionTime, 0) / resps.length).toFixed(1)
+          : '-';
+        return {
+          caseName: r.caseName,
+          endTime: r.endTime,
+          totalCommands: resps.length,
+          correctCount: correct,
+          correctRate: resps.length > 0 ? Math.round((correct / resps.length) * 100) : 0,
+          avgTime
+        };
+      })
+    };
+  };
+
   const pendingAssignments = assignments.filter(a => a.status === 'pending');
 
   return (
@@ -169,6 +205,9 @@ export function TeacherPage() {
           <div className="grid grid-cols-3 gap-6">
             {traineeStudents.map(student => {
               const stats = getStudentStats(student.id);
+              const cmdStats = getCommandStats(student.id);
+              const cmdStatsDE = getCommandStats(student.id, 'double-eyelid');
+              const isExpanded = expandedStudent === student.id;
               return (
                 <div key={student.id} className="card-hover">
                   <div className="flex items-start justify-between mb-4">
@@ -206,6 +245,49 @@ export function TeacherPage() {
                     </div>
                   </div>
 
+                  {cmdStatsDE && (
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                          <Target className="w-3 h-3" />
+                          双眼皮口令表现
+                        </p>
+                        <span className="text-xs text-blue-500">近{cmdStatsDE.recentCount}次</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="text-center">
+                          <p className={`text-lg font-bold ${
+                            cmdStatsDE.correctRate >= 80 ? 'text-green-600' :
+                            cmdStatsDE.correctRate >= 60 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>{cmdStatsDE.correctRate}%</p>
+                          <p className="text-xs text-gray-500">口令正确率</p>
+                        </div>
+                        <div className="text-center">
+                          <p className={`text-lg font-bold ${
+                            parseFloat(cmdStatsDE.avgReactionTime) <= 2 ? 'text-green-600' :
+                            parseFloat(cmdStatsDE.avgReactionTime) <= 3.5 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>{cmdStatsDE.avgReactionTime}s</p>
+                          <p className="text-xs text-gray-500">平均反应时间</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {cmdStats && !cmdStatsDE && (
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-medical-600">{cmdStats.correctRate}%</p>
+                          <p className="text-xs text-gray-500">口令正确率</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-medical-600">{cmdStats.avgReactionTime}s</p>
+                          <p className="text-xs text-gray-500">平均反应时间</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {stats.weakPoints.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs text-gray-500 mb-2">薄弱环节</p>
@@ -230,6 +312,39 @@ export function TeacherPage() {
                         }`}>
                           {stats.recentRecord.totalScore}分
                         </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {cmdStatsDE && (
+                    <button
+                      onClick={() => setExpandedStudent(isExpanded ? null : student.id)}
+                      className="w-full text-xs text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1 mb-3 py-1"
+                    >
+                      <TrendingUp className="w-3 h-3" />
+                      {isExpanded ? '收起口令详情' : '查看口令详情'}
+                    </button>
+                  )}
+
+                  {isExpanded && cmdStatsDE && (
+                    <div className="border-t border-gray-100 pt-3 mb-3">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">最近{cmdStatsDE.details.length}次双眼皮训练口令表现</p>
+                      <div className="space-y-2">
+                        {cmdStatsDE.details.map((d, i) => (
+                          <div key={i} className="bg-gray-50 rounded-lg p-2 flex items-center justify-between text-xs">
+                            <div>
+                              <p className="text-gray-700 font-medium">{d.caseName}</p>
+                              <p className="text-gray-400">{d.endTime}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`${d.correctRate >= 80 ? 'text-green-600' : d.correctRate >= 60 ? 'text-yellow-600' : 'text-red-600'} font-bold`}>
+                                {d.correctRate}%
+                              </span>
+                              <span className="text-gray-500">{d.avgTime}s</span>
+                              <span className="text-gray-400">{d.correctCount}/{d.totalCommands}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

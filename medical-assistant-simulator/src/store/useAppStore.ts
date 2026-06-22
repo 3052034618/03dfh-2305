@@ -7,6 +7,7 @@ interface AppStore extends AppState {
   setView: (view: AppView) => void;
   setCurrentStudent: (student: Student | null) => void;
   setSelectedCase: (caseItem: Case | null) => void;
+  setSelectedCaseWithStep: (caseItem: Case | null, stepIndex: number) => void;
   setTrainingPhase: (phase: AppState['trainingPhase']) => void;
   setCurrentStepIndex: (index: number) => void;
   nextStep: () => void;
@@ -131,6 +132,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setView: (view) => set({ currentView: view }),
   setCurrentStudent: (student) => set({ currentStudent: student }),
   setSelectedCase: (caseItem) => set({ selectedCase: caseItem, currentStepIndex: 0 }),
+  setSelectedCaseWithStep: (caseItem, stepIndex) => set({ selectedCase: caseItem, currentStepIndex: stepIndex }),
   setTrainingPhase: (phase) => set({ trainingPhase: phase }),
   setCurrentStepIndex: (index) => set({ currentStepIndex: index }),
   

@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { RotateCcw, Play, Clock, AlertTriangle, CheckCircle, XCircle, FileText, Eye, User, Calendar } from 'lucide-react';
+import { RotateCcw, Play, Clock, AlertTriangle, CheckCircle, XCircle, FileText, Eye, User, Calendar, Filter } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cases } from '../data/cases';
 
 export function ReplayPage() {
-  const { records, assignments, currentStudent, setSelectedCase, setView, updateAssignment } = useAppStore();
+  const { records, assignments, currentStudent, setSelectedCase, setSelectedCaseWithStep, setView, updateAssignment } = useAppStore();
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'assignments' | 'errors'>('assignments');
+  const [errorFilter, setErrorFilter] = useState<string>('all');
 
   const isTeacher = currentStudent?.role === 'teacher';
   
@@ -17,10 +18,14 @@ export function ReplayPage() {
 
   const recordsWithErrors = myRecords.filter(r => r.errors.length > 0);
 
-  const handleReplay = (caseId: string, assignmentId?: string) => {
+  const handleReplay = (caseId: string, assignmentId?: string, stepIndex?: number) => {
     const caseItem = cases.find(c => c.id === caseId);
     if (caseItem) {
-      setSelectedCase(caseItem);
+      if (stepIndex !== undefined) {
+        setSelectedCaseWithStep(caseItem, stepIndex);
+      } else {
+        setSelectedCase(caseItem);
+      }
       setView('training');
       
       if (assignmentId && !isTeacher) {
@@ -32,6 +37,19 @@ export function ReplayPage() {
           });
         }
       }
+    }
+  };
+
+  const handleReplayFromDelivery = (caseId: string) => {
+    const caseItem = cases.find(c => c.id === caseId);
+    if (caseItem) {
+      const deliveryStepIdx = caseItem.steps.findIndex(s => s.category === 'delivery');
+      if (deliveryStepIdx >= 0) {
+        setSelectedCaseWithStep(caseItem, deliveryStepIdx);
+      } else {
+        setSelectedCase(caseItem);
+      }
+      setView('training');
     }
   };
 
@@ -166,43 +184,80 @@ export function ReplayPage() {
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-5">
             <div className="card p-4">
-              <h3 className="font-semibold text-gray-800 mb-4">训练记录列表</h3>
-              {recordsWithErrors.length === 0 ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
-                  <p className="text-gray-500">暂无错误记录</p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-800">训练记录列表</h3>
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-gray-400" />
+                  <select
+                    value={errorFilter}
+                    onChange={e => { setErrorFilter(e.target.value); setSelectedRecord(null); }}
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1"
+                  >
+                    <option value="all">全部错误</option>
+                    <option value="timeout">超时</option>
+                    <option value="wrong_choice">选错器械</option>
+                    <option value="missing_check">漏核对</option>
+                    <option value="incomplete_record">记录不完整</option>
+                    <option value="wrong_item">递错物</option>
+                  </select>
                 </div>
-              ) : (
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {recordsWithErrors.map(record => (
-                    <button
-                      key={record.id}
-                      onClick={() => setSelectedRecord(record)}
-                      className={`w-full text-left p-4 rounded-xl transition-all ${
-                        selectedRecord?.id === record.id
-                          ? 'bg-medical-50 border-2 border-medical-300'
-                          : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-800">{record.caseName}</h4>
-                        <span className={`text-xl font-bold ${
-                          record.totalScore >= 80 ? 'text-green-600' : record.totalScore >= 60 ? 'text-yellow-600' : 'text-red-600'
-                        }`}>
-                          {record.totalScore}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-500">{record.endTime}</span>
-                        <span className="flex items-center gap-1 text-red-500">
-                          <AlertTriangle className="w-3 h-3" />
-                          {record.errors.length}个错误
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+              </div>
+              {(() => {
+                const filtered = errorFilter === 'all'
+                  ? recordsWithErrors
+                  : recordsWithErrors.filter(r => {
+                      if (errorFilter === 'timeout') {
+                        return r.commandResponses?.some((c: any) => !c.isCorrect && c.selectedOption === '超时未响应') ||
+                               r.errors.some((e: any) => e.description?.includes('超时'));
+                      }
+                      if (errorFilter === 'wrong_choice') {
+                        return r.commandResponses?.some((c: any) => !c.isCorrect && c.selectedOption !== '超时未响应') ||
+                               r.errors.some((e: any) => e.description?.includes('错误响应') || e.description?.includes('递错'));
+                      }
+                      const typeMap: Record<string, string> = {
+                        missing_check: 'missing_check',
+                        incomplete_record: 'incomplete_record',
+                        wrong_item: 'wrong_item'
+                      };
+                      return r.errors.some((e: any) => e.errorType === typeMap[errorFilter]);
+                    });
+                return filtered.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
+                    <p className="text-gray-500">暂无此类错误记录</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {filtered.map(record => (
+                      <button
+                        key={record.id}
+                        onClick={() => setSelectedRecord(record)}
+                        className={`w-full text-left p-4 rounded-xl transition-all ${
+                          selectedRecord?.id === record.id
+                            ? 'bg-medical-50 border-2 border-medical-300'
+                            : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-gray-800">{record.caseName}</h4>
+                          <span className={`text-xl font-bold ${
+                            record.totalScore >= 80 ? 'text-green-600' : record.totalScore >= 60 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {record.totalScore}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">{record.endTime}</span>
+                          <span className="flex items-center gap-1 text-red-500">
+                            <AlertTriangle className="w-3 h-3" />
+                            {record.errors.length}个错误
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -214,13 +269,22 @@ export function ReplayPage() {
                     <h3 className="text-xl font-bold text-gray-800">{selectedRecord.caseName}</h3>
                     <p className="text-sm text-gray-500">完成时间：{selectedRecord.endTime}</p>
                   </div>
-                  <button
-                    onClick={() => handleReplay(selectedRecord.caseId)}
-                    className="btn-primary flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    重新训练
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleReplayFromDelivery(selectedRecord.caseId)}
+                      className="btn-secondary flex items-center gap-2"
+                    >
+                      <Play className="w-4 h-4" />
+                      从递械开始练
+                    </button>
+                    <button
+                      onClick={() => handleReplay(selectedRecord.caseId)}
+                      className="btn-primary flex items-center gap-2"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      完整重练
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-4 mb-6">
