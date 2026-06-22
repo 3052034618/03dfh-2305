@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { cases } from '../data/cases';
 import { Play, ArrowLeft, ArrowRight, AlertTriangle, CheckCircle, XCircle, Clock, UserCircle, ClipboardList, Scissors, FileText, BookOpen, Package, ShieldCheck, Hand } from 'lucide-react';
@@ -57,11 +57,14 @@ export function TrainingPage() {
   const [showActionChoice, setShowActionChoice] = useState(false);
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState<{ type: 'correct' | 'wrong'; message: string; risk?: string } | null>(null);
-  const [commandQueue, setCommandQueue] = useState<any[]>([]);
-  const [currentCommandIndex, setCurrentCommandIndex] = useState(0);
   const [stepsCompleted, setStepsCompleted] = useState<Set<string>>(new Set());
-  const [commandTriggered, setCommandTriggered] = useState(false);
-  const [commandCompleted, setCommandCompleted] = useState(false);
+  const [commandsDone, setCommandsDone] = useState(0);
+  const [commandsTotal, setCommandsTotal] = useState(0);
+
+  const commandQueueRef = useRef<any[]>([]);
+  const commandIndexRef = useRef(0);
+  const commandTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isShowingCommandRef = useRef(false);
 
   const currentCase = selectedCase;
 
@@ -89,10 +92,12 @@ export function TrainingPage() {
     setStartTime(Date.now());
     setElapsedTime(0);
     setStepsCompleted(new Set());
-    setCommandTriggered(false);
-    setCommandCompleted(false);
-    setCommandQueue([]);
-    setCurrentCommandIndex(0);
+    setCommandsDone(0);
+    setCommandsTotal(0);
+    commandQueueRef.current = [];
+    commandIndexRef.current = 0;
+    isShowingCommandRef.current = false;
+    if (commandTimerRef.current) clearTimeout(commandTimerRef.current);
     setSelectedAction(null);
   }, [setTrainingPhase, setStartTime]);
 
@@ -156,12 +161,12 @@ export function TrainingPage() {
       return;
     }
 
-    const remainingCommands = commandQueue.length - currentCommandIndex;
-    if (commandQueue.length > 0 && remainingCommands > 0 && !showCommand) {
+    const remaining = commandsTotal - commandsDone;
+    if (commandsTotal > 0 && remaining > 0) {
       setShowFeedback({
         type: 'wrong',
         message: '还有口令未完成！',
-        risk: `本步骤还有 ${remainingCommands} 条医生口令需要响应`
+        risk: `本步骤还有 ${remaining} 条医生口令需要响应`
       });
       setTimeout(() => setShowFeedback(null), 2500);
       return;
@@ -198,20 +203,18 @@ export function TrainingPage() {
     } else {
       nextStep();
       setSelectedAction(null);
-      setCurrentCommandIndex(0);
-      setCommandTriggered(false);
-      setCommandCompleted(false);
     }
   };
 
-  const triggerNextCommand = useCallback(() => {
-    if (commandQueue.length > 0 && currentCommandIndex < commandQueue.length) {
-      const cmd = commandQueue[currentCommandIndex];
-      showCommandModal(cmd);
-      setCurrentCommandIndex(prev => prev + 1);
-      setCommandCompleted(false);
-    }
-  }, [commandQueue, currentCommandIndex, showCommandModal]);
+  const showNextCommand = () => {
+    const queue = commandQueueRef.current;
+    const idx = commandIndexRef.current;
+    if (idx >= queue.length) return;
+    const cmd = queue[idx];
+    commandIndexRef.current = idx + 1;
+    isShowingCommandRef.current = true;
+    showCommandModal(cmd);
+  };
 
   const handleCommandResponse = (optionId: string, reactionTime: number) => {
     if (!currentCommand) return;
@@ -246,7 +249,15 @@ export function TrainingPage() {
     }
 
     hideCommandModal();
-    setCommandCompleted(true);
+    isShowingCommandRef.current = false;
+    setCommandsDone(prev => prev + 1);
+
+    const nextIdx = commandIndexRef.current;
+    if (nextIdx < commandQueueRef.current.length) {
+      commandTimerRef.current = setTimeout(() => {
+        showNextCommand();
+      }, 1200);
+    }
   };
 
   const handleCommandTimeout = () => {
@@ -276,17 +287,16 @@ export function TrainingPage() {
     addTrainingError(error);
 
     hideCommandModal();
-    setCommandCompleted(true);
-  };
+    isShowingCommandRef.current = false;
+    setCommandsDone(prev => prev + 1);
 
-  useEffect(() => {
-    if (commandCompleted && currentCommandIndex < commandQueue.length) {
-      const timer = setTimeout(() => {
-        triggerNextCommand();
-      }, 1500);
-      return () => clearTimeout(timer);
+    const nextIdx = commandIndexRef.current;
+    if (nextIdx < commandQueueRef.current.length) {
+      commandTimerRef.current = setTimeout(() => {
+        showNextCommand();
+      }, 1200);
     }
-  }, [commandCompleted, currentCommandIndex, commandQueue.length, triggerNextCommand]);
+  };
 
   const finishTraining = () => {
     setTrainingPhase('completed');
@@ -304,21 +314,25 @@ export function TrainingPage() {
   };
 
   useEffect(() => {
-    if (trainingPhase === 'running' && currentStep && !commandTriggered) {
+    if (trainingPhase === 'running' && currentStep) {
+      if (commandTimerRef.current) clearTimeout(commandTimerRef.current);
       const stepCommands = currentCase?.commands.filter(c => c.stepId === currentStep.id) || [];
-      setCommandQueue(stepCommands);
-      setCurrentCommandIndex(0);
-      setCommandTriggered(true);
+      commandQueueRef.current = stepCommands;
+      commandIndexRef.current = 0;
+      isShowingCommandRef.current = false;
+      setCommandsDone(0);
+      setCommandsTotal(stepCommands.length);
 
       if (stepCommands.length > 0) {
-        const delay = Math.random() * 2000 + 1000;
-        const timer = setTimeout(() => {
-          triggerNextCommand();
-        }, delay);
-        return () => clearTimeout(timer);
+        commandTimerRef.current = setTimeout(() => {
+          showNextCommand();
+        }, 1500);
       }
     }
-  }, [currentStepIndex, trainingPhase, currentStep, currentCase, commandTriggered, triggerNextCommand]);
+    return () => {
+      if (commandTimerRef.current) clearTimeout(commandTimerRef.current);
+    };
+  }, [currentStepIndex, trainingPhase]);
 
   if (!currentCase || !currentStep) {
     return (
@@ -725,7 +739,7 @@ export function TrainingPage() {
             <h3 className="font-semibold text-gray-800 mb-3">口令倒计时</h3>
             <div className="text-center">
               <div className="text-4xl font-bold text-medical-600 mb-1">
-                {commandQueue.length > 0 ? commandQueue.length - currentCommandIndex : 0}
+                {commandsTotal > 0 ? commandsTotal - commandsDone : 0}
               </div>
               <p className="text-xs text-gray-500">剩余口令数</p>
             </div>

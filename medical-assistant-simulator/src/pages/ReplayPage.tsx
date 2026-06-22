@@ -281,6 +281,48 @@ export function ReplayPage() {
                   ))}
                 </div>
 
+                {selectedRecord.commandResponses && selectedRecord.commandResponses.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <h4 className="font-semibold text-gray-800 mb-3">口令响应记录</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-2 px-2 font-semibold text-gray-600">口令内容</th>
+                            <th className="text-left py-2 px-2 font-semibold text-gray-600">你的选择</th>
+                            <th className="text-center py-2 px-2 font-semibold text-gray-600">结果</th>
+                            <th className="text-center py-2 px-2 font-semibold text-gray-600">反应时间</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedRecord.commandResponses.map((resp: any, idx: number) => (
+                            <tr key={idx} className="border-b border-gray-100">
+                              <td className="py-2 px-2 text-gray-800">{resp.commandContent}</td>
+                              <td className="py-2 px-2 text-gray-700">{resp.selectedOption}</td>
+                              <td className="py-2 px-2 text-center">
+                                {resp.isCorrect ? (
+                                  <span className="inline-flex items-center gap-1 text-green-600">
+                                    <CheckCircle className="w-3 h-3" />正确
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-red-600">
+                                    <XCircle className="w-3 h-3" />错误
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-2 text-center font-mono">
+                                <span className={resp.reactionTime > resp.timeLimit * 0.8 ? 'text-orange-600' : 'text-gray-700'}>
+                                  {resp.reactionTime.toFixed(1)}s
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {selectedRecord.weakPoints.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-100">
                     <h4 className="font-semibold text-gray-800 mb-3">薄弱环节分析</h4>

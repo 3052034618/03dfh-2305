@@ -274,20 +274,24 @@ export function RecordsPage() {
                             <div className="grid grid-cols-2 gap-6">
                               <div>
                                 <h4 className="font-semibold text-gray-800 mb-3">关键信息录入</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {Object.entries(record.keyInputs).map(([key, value]) => {
-                                    const inputLabel = cases
-                                      .find(c => c.id === record.caseId)
-                                      ?.steps.flatMap(s => s.keyInputs || [])
-                                      .find(k => k.id === key)?.label || key;
-                                    return (
-                                      <div key={key} className="bg-white rounded-lg p-2">
-                                        <p className="text-xs text-gray-500">{inputLabel}</p>
-                                        <p className="text-sm font-medium text-gray-800">{value as string}</p>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                                {Object.keys(record.keyInputs).length > 0 ? (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {Object.entries(record.keyInputs).map(([key, value]) => {
+                                      const inputLabel = cases
+                                        .find(c => c.id === record.caseId)
+                                        ?.steps.flatMap(s => s.keyInputs || [])
+                                        .find(k => k.id === key)?.label || key;
+                                      return (
+                                        <div key={key} className="bg-white rounded-lg p-2">
+                                          <p className="text-xs text-gray-500">{inputLabel}</p>
+                                          <p className="text-sm font-medium text-gray-800">{value as string}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-400">本案例无关键信息录入</p>
+                                )}
                               </div>
                               <div>
                                 <h4 className="font-semibold text-gray-800 mb-3">错误记录</h4>
@@ -298,12 +302,12 @@ export function RecordsPage() {
                                   </p>
                                 ) : (
                                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {record.errors.slice(0, 3).map((error: any) => (
+                                    {record.errors.map((error: any) => (
                                       <div key={error.id} className="bg-white rounded-lg p-2 border-l-2 border-red-400">
                                         <div className="flex items-center justify-between">
                                           <span className="text-sm text-gray-800">{error.description}</span>
                                           <span className={`badge badge-risk-${error.riskLevel}`}>
-                                            {error.riskLevel === 'high' ? '高' : '中'}
+                                            {error.riskLevel === 'high' ? '高' : error.riskLevel === 'medium' ? '中' : '低'}
                                           </span>
                                         </div>
                                       </div>
@@ -312,6 +316,51 @@ export function RecordsPage() {
                                 )}
                               </div>
                             </div>
+                            {record.commandResponses && record.commandResponses.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-gray-200">
+                                <h4 className="font-semibold text-gray-800 mb-3">口令响应记录</h4>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-gray-200">
+                                        <th className="text-left py-2 px-3 font-semibold text-gray-600">口令内容</th>
+                                        <th className="text-left py-2 px-3 font-semibold text-gray-600">你的选择</th>
+                                        <th className="text-center py-2 px-3 font-semibold text-gray-600">结果</th>
+                                        <th className="text-center py-2 px-3 font-semibold text-gray-600">反应时间</th>
+                                        <th className="text-center py-2 px-3 font-semibold text-gray-600">限时</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {record.commandResponses.map((resp: any, idx: number) => (
+                                        <tr key={idx} className="border-b border-gray-100">
+                                          <td className="py-2 px-3 text-gray-800">{resp.commandContent}</td>
+                                          <td className="py-2 px-3 text-gray-700">{resp.selectedOption}</td>
+                                          <td className="py-2 px-3 text-center">
+                                            {resp.isCorrect ? (
+                                              <span className="inline-flex items-center gap-1 text-green-600">
+                                                <CheckCircle className="w-4 h-4" />
+                                                正确
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center gap-1 text-red-600">
+                                                <XCircle className="w-4 h-4" />
+                                                错误
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-3 text-center font-mono">
+                                            <span className={resp.reactionTime > resp.timeLimit * 0.8 ? 'text-orange-600' : 'text-gray-700'}>
+                                              {resp.reactionTime.toFixed(1)}s
+                                            </span>
+                                          </td>
+                                          <td className="py-2 px-3 text-center text-gray-500">{resp.timeLimit}s</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
                             {record.weakPoints.length > 0 && (
                               <div className="mt-4 pt-4 border-t border-gray-200">
                                 <h4 className="font-semibold text-gray-800 mb-2">薄弱环节</h4>
