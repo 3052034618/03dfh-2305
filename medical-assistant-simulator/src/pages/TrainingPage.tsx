@@ -200,11 +200,7 @@ export function TrainingPage() {
       setSelectedAction(null);
       setCurrentCommandIndex(0);
       setCommandTriggered(false);
-      setCommandQueue([]);
-
-      const nextStepData = currentCase!.steps[currentStepIndex + 1];
-      const stepCommands = currentCase!.commands.filter(c => c.stepId === nextStepData.id);
-      setCommandQueue(stepCommands);
+      setCommandCompleted(false);
     }
   };
 

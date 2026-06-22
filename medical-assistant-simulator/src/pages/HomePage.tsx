@@ -17,6 +17,10 @@ export function HomePage() {
   const quickCases = cases.slice(0, 4);
   const iconMap: Record<string, any> = { Eye, Activity, Syringe, Zap };
 
+  const getIcon = (iconName: string) => {
+    return iconMap[iconName] || Activity;
+  };
+
   const difficultyColors: Record<string, string> = {
     easy: 'badge-easy',
     medium: 'badge-medium',
@@ -143,7 +147,7 @@ export function HomePage() {
                     {key === 'reactionSpeed' && '反应'}
                     {key === 'riskAwareness' && '风险'}
                     {key === 'communicationEtiquette' && '沟通'}
-                    : {value}分
+                    {value}分
                   </span>
                 ))}
               </div>
@@ -173,7 +177,7 @@ export function HomePage() {
         </div>
         <div className="grid grid-cols-4 gap-4">
           {quickCases.map(caseItem => {
-            const Icon = iconMap[caseItem.icon] || Eye;
+            const Icon = getIcon(caseItem.icon);
             return (
               <div 
                 key={caseItem.id}

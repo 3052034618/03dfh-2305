@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Nose, Syringe, Zap, Search, Clock, Filter, Star, ChevronRight } from 'lucide-react';
+import { Eye, Activity, Syringe, Zap, Search, Clock, Filter, Star, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cases } from '../data/cases';
 
@@ -10,6 +10,10 @@ export function CaseSelectPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const iconMap: Record<string, any> = { Eye, Activity, Syringe, Zap };
+  
+  const getIcon = (iconName: string) => {
+    return iconMap[iconName] || Activity;
+  };
   
   const difficultyColors: Record<string, string> = {
     easy: 'badge-easy',
@@ -102,7 +106,7 @@ export function CaseSelectPage() {
 
       <div className="grid grid-cols-2 gap-6">
         {filteredCases.map(caseItem => {
-          const Icon = iconMap[caseItem.icon] || Eye;
+          const Icon = getIcon(caseItem.icon);
           const stats = getCaseStats(caseItem.id);
           
           return (
