@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #f0fdfa 0%, #eff6ff 100%);
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-medical-600 hover:bg-medical-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-white border-2 border-medical-200 hover:border-medical-400 text-medical-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:bg-medical-50;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md;
+  }
+
+  .btn-warning {
+    @apply bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-md;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-lg p-6 border border-gray-100;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-medical-500 focus:ring-2 focus:ring-medical-200 outline-none transition-all duration-200;
+  }
+
+  .select-field {
+    @apply w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-medical-500 focus:ring-2 focus:ring-medical-200 outline-none transition-all duration-200 bg-white;
+  }
+
+  .progress-bar {
+    @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-medical-500 to-medical-600 rounded-full transition-all duration-500;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-easy {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .badge-medium {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-hard {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .badge-risk-low {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .badge-risk-medium {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-risk-high {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .badge-risk-critical {
+    @apply bg-red-200 text-red-900 animate-pulse;
+  }
+
+  .step-connector {
+    @apply h-12 w-0.5 bg-gray-200 mx-auto;
+  }
+
+  .step-connector-active {
+    @apply bg-medical-500;
+  }
+
+  .timeline-item {
+    @apply relative pl-8 pb-8 border-l-2 border-gray-200 last:pb-0;
+  }
+
+  .timeline-item::before {
+    content: '';
+    @apply absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-white border-4 border-medical-500;
+  }
+
+  .timeline-item-completed::before {
+    @apply bg-medical-500;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto;
+  }
+
+  .command-pulse {
+    animation: commandPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes commandPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  }
+
+  .timer-ring {
+    @apply rounded-full flex items-center justify-center;
+    background: conic-gradient(var(--color) var(--progress), #e5e7eb var(--progress));
+  }
+
+  .timer-ring-inner {
+    @apply w-[90%] h-[90%] rounded-full bg-white flex items-center justify-center;
+  }
+}
