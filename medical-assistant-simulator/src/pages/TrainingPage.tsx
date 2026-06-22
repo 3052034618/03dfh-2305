@@ -59,6 +59,9 @@ export function TrainingPage() {
   const [showFeedback, setShowFeedback] = useState<{ type: 'correct' | 'wrong'; message: string; risk?: string } | null>(null);
   const [commandQueue, setCommandQueue] = useState<any[]>([]);
   const [currentCommandIndex, setCurrentCommandIndex] = useState(0);
+  const [stepsCompleted, setStepsCompleted] = useState<Set<string>>(new Set());
+  const [commandTriggered, setCommandTriggered] = useState(false);
+  const [commandCompleted, setCommandCompleted] = useState(false);
 
   const currentCase = selectedCase;
 
@@ -85,6 +88,12 @@ export function TrainingPage() {
     setTrainingPhase('running');
     setStartTime(Date.now());
     setElapsedTime(0);
+    setStepsCompleted(new Set());
+    setCommandTriggered(false);
+    setCommandCompleted(false);
+    setCommandQueue([]);
+    setCurrentCommandIndex(0);
+    setSelectedAction(null);
   }, [setTrainingPhase, setStartTime]);
 
   const formatTime = (seconds: number) => {
@@ -96,6 +105,10 @@ export function TrainingPage() {
   const handleActionSelect = (action: string, isWrong: boolean, wrongAction?: any) => {
     setSelectedAction(action);
     setShowActionChoice(false);
+
+    if (currentStep) {
+      setStepsCompleted(prev => new Set(prev).add(currentStep.id));
+    }
 
     if (isWrong && wrongAction) {
       const error: any = {
@@ -133,6 +146,27 @@ export function TrainingPage() {
   const handleNextStep = () => {
     if (!currentStep) return;
 
+    if (!stepsCompleted.has(currentStep.id)) {
+      setShowFeedback({
+        type: 'wrong',
+        message: '请先选择操作！',
+        risk: '每一步都需要至少执行一次操作才能进入下一步'
+      });
+      setTimeout(() => setShowFeedback(null), 2500);
+      return;
+    }
+
+    const remainingCommands = commandQueue.length - currentCommandIndex;
+    if (commandQueue.length > 0 && remainingCommands > 0 && !showCommand) {
+      setShowFeedback({
+        type: 'wrong',
+        message: '还有口令未完成！',
+        risk: `本步骤还有 ${remainingCommands} 条医生口令需要响应`
+      });
+      setTimeout(() => setShowFeedback(null), 2500);
+      return;
+    }
+
     const missingInputs = currentStep.keyInputs?.filter(
       input => input.required && !keyInputValues[input.id]
     );
@@ -165,6 +199,8 @@ export function TrainingPage() {
       nextStep();
       setSelectedAction(null);
       setCurrentCommandIndex(0);
+      setCommandTriggered(false);
+      setCommandQueue([]);
 
       const nextStepData = currentCase!.steps[currentStepIndex + 1];
       const stepCommands = currentCase!.commands.filter(c => c.stepId === nextStepData.id);
@@ -177,6 +213,7 @@ export function TrainingPage() {
       const cmd = commandQueue[currentCommandIndex];
       showCommandModal(cmd);
       setCurrentCommandIndex(prev => prev + 1);
+      setCommandCompleted(false);
     }
   }, [commandQueue, currentCommandIndex, showCommandModal]);
 
@@ -213,10 +250,7 @@ export function TrainingPage() {
     }
 
     hideCommandModal();
-
-    if (currentCommandIndex < commandQueue.length) {
-      setTimeout(() => triggerNextCommand(), 1500);
-    }
+    setCommandCompleted(true);
   };
 
   const handleCommandTimeout = () => {
@@ -246,11 +280,17 @@ export function TrainingPage() {
     addTrainingError(error);
 
     hideCommandModal();
-
-    if (currentCommandIndex < commandQueue.length) {
-      setTimeout(() => triggerNextCommand(), 1500);
-    }
+    setCommandCompleted(true);
   };
+
+  useEffect(() => {
+    if (commandCompleted && currentCommandIndex < commandQueue.length) {
+      const timer = setTimeout(() => {
+        triggerNextCommand();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [commandCompleted, currentCommandIndex, commandQueue.length, triggerNextCommand]);
 
   const finishTraining = () => {
     setTrainingPhase('completed');
@@ -268,17 +308,21 @@ export function TrainingPage() {
   };
 
   useEffect(() => {
-    if (trainingPhase === 'running' && currentStep?.commands && commandQueue.length === 0) {
+    if (trainingPhase === 'running' && currentStep && !commandTriggered) {
       const stepCommands = currentCase?.commands.filter(c => c.stepId === currentStep.id) || [];
       setCommandQueue(stepCommands);
       setCurrentCommandIndex(0);
+      setCommandTriggered(true);
 
       if (stepCommands.length > 0) {
-        const delay = Math.random() * 3000 + 2000;
-        setTimeout(() => triggerNextCommand(), delay);
+        const delay = Math.random() * 2000 + 1000;
+        const timer = setTimeout(() => {
+          triggerNextCommand();
+        }, delay);
+        return () => clearTimeout(timer);
       }
     }
-  }, [currentStepIndex, trainingPhase, currentStep, currentCase]);
+  }, [currentStepIndex, trainingPhase, currentStep, currentCase, commandTriggered, triggerNextCommand]);
 
   if (!currentCase || !currentStep) {
     return (

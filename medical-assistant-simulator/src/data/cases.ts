@@ -193,7 +193,7 @@ export const cases: Case[] = [
     difficulty: 'hard',
     duration: 60,
     description: '模拟硅胶假体隆鼻手术配合，包括假体雕刻、鼻部分离和假体植入',
-    icon: 'Nose',
+    icon: 'Activity',
     steps: [
       {
         id: 'rp-1',

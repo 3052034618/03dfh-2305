@@ -9,7 +9,7 @@ export function CaseSelectPage() {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  const iconMap: Record<string, any> = { Eye, Nose, Syringe, Zap };
+  const iconMap: Record<string, any> = { Eye, Activity, Syringe, Zap };
   
   const difficultyColors: Record<string, string> = {
     easy: 'badge-easy',

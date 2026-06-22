@@ -1,4 +1,4 @@
-import { Eye, Nose, Syringe, Zap, TrendingUp, Award, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Eye, Activity, Syringe, Zap, TrendingUp, Award, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { cases } from '../data/cases';
 
@@ -15,7 +15,7 @@ export function HomePage() {
   const recentRecord = myRecords[myRecords.length - 1];
 
   const quickCases = cases.slice(0, 4);
-  const iconMap: Record<string, any> = { Eye, Nose, Syringe, Zap };
+  const iconMap: Record<string, any> = { Eye, Activity, Syringe, Zap };
 
   const difficultyColors: Record<string, string> = {
     easy: 'badge-easy',
